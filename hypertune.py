@@ -6,6 +6,7 @@ import importlib
 import json
 import numpy as np
 from sklearn.model_selection import GridSearchCV
+from sklearn.decomposition import PCA
 
 
 ALGORITHMS_DIR = 'algorithms'
@@ -103,12 +104,19 @@ def main():
         cv=num_folds,
         n_jobs=-1,
         scoring='accuracy',
-        verbose=True,
+        verbose=2,
         iid=False,
         return_train_score=False
     )
     print('Loading %s...' % data_set_name)
     X_train, X_test, y_train, y_test = data_set.load_data()
+
+    if with_pca:
+        print('Applying PCA...')
+        pca = PCA(n_components=2)
+        pca.fit(X_train, y_train)
+        X_train = pca.transform(X_train)
+
     print('Running grid search...')
     searcher.fit(X_train, y_train)
     print('Saving results...')
