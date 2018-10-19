@@ -7,6 +7,10 @@ def get_classifier():
 
 def get_params_space(data_set):
     return {
-        'metric': ['cosine', 'euclidean', 'manhattan', 'braycurtis',
-                   'canberra', 'chebyshev', 'seuclidean', 'sqeuclidean']
+        # TODO: Investigate how to compute the centroid for other distance metrics.
+        # scikit-learn supports other distances like 'braycurtis', 'canberra',
+        # 'chebyshev', 'seuclidean', 'sqeuclidean' but is it okay to use the mean
+        # to compute the centroids? NearestCentroid issues warnings when the other
+        # distance metrics are used. Can we safely ignore these warnings?
+        'metric': ['euclidean', 'manhattan']
     }
