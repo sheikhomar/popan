@@ -1,0 +1,34 @@
+{
+    "algorithm": "nsc2",
+    "data_set": "orl",
+    "pca": false,
+    "best_score": 0.9574999999999999,
+    "best_params": {
+        "metric": "manhattan"
+    },
+    "folds": 5,
+    "search_params": [
+        {
+            "metric": "euclidean"
+        },
+        {
+            "metric": "manhattan"
+        }
+    ],
+    "test_scores": [
+        [
+            0.95,
+            0.925,
+            0.925,
+            0.925,
+            0.925
+        ],
+        [
+            0.95,
+            0.9625,
+            0.95,
+            0.975,
+            0.95
+        ]
+    ]
+}
