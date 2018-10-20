@@ -1,0 +1,125 @@
+{
+    "algorithm": "nn",
+    "data_set": "orl",
+    "pca": true,
+    "best_score": 0.44749999999999995,
+    "best_params": {
+        "metric": "euclidean",
+        "n_neighbors": 2
+    },
+    "folds": 5,
+    "search_params": [
+        {
+            "metric": "euclidean",
+            "n_neighbors": 1
+        },
+        {
+            "metric": "euclidean",
+            "n_neighbors": 2
+        },
+        {
+            "metric": "euclidean",
+            "n_neighbors": 3
+        },
+        {
+            "metric": "euclidean",
+            "n_neighbors": 4
+        },
+        {
+            "metric": "euclidean",
+            "n_neighbors": 5
+        },
+        {
+            "metric": "manhattan",
+            "n_neighbors": 1
+        },
+        {
+            "metric": "manhattan",
+            "n_neighbors": 2
+        },
+        {
+            "metric": "manhattan",
+            "n_neighbors": 3
+        },
+        {
+            "metric": "manhattan",
+            "n_neighbors": 4
+        },
+        {
+            "metric": "manhattan",
+            "n_neighbors": 5
+        }
+    ],
+    "test_scores": [
+        [
+            0.4125,
+            0.3375,
+            0.475,
+            0.4,
+            0.45
+        ],
+        [
+            0.4375,
+            0.35,
+            0.55,
+            0.45,
+            0.45
+        ],
+        [
+            0.45,
+            0.375,
+            0.375,
+            0.4,
+            0.4
+        ],
+        [
+            0.3625,
+            0.3375,
+            0.45,
+            0.325,
+            0.35
+        ],
+        [
+            0.4125,
+            0.4125,
+            0.45,
+            0.425,
+            0.325
+        ],
+        [
+            0.475,
+            0.375,
+            0.45,
+            0.4,
+            0.4
+        ],
+        [
+            0.4375,
+            0.3625,
+            0.475,
+            0.45,
+            0.45
+        ],
+        [
+            0.4,
+            0.3375,
+            0.4,
+            0.4,
+            0.35
+        ],
+        [
+            0.35,
+            0.325,
+            0.4,
+            0.35,
+            0.325
+        ],
+        [
+            0.3875,
+            0.3875,
+            0.425,
+            0.35,
+            0.325
+        ]
+    ]
+}

@@ -1,0 +1,125 @@
+{
+    "algorithm": "nn",
+    "data_set": "orl",
+    "pca": false,
+    "best_score": 0.9650000000000001,
+    "best_params": {
+        "metric": "manhattan",
+        "n_neighbors": 1
+    },
+    "folds": 5,
+    "search_params": [
+        {
+            "metric": "euclidean",
+            "n_neighbors": 1
+        },
+        {
+            "metric": "euclidean",
+            "n_neighbors": 2
+        },
+        {
+            "metric": "euclidean",
+            "n_neighbors": 3
+        },
+        {
+            "metric": "euclidean",
+            "n_neighbors": 4
+        },
+        {
+            "metric": "euclidean",
+            "n_neighbors": 5
+        },
+        {
+            "metric": "manhattan",
+            "n_neighbors": 1
+        },
+        {
+            "metric": "manhattan",
+            "n_neighbors": 2
+        },
+        {
+            "metric": "manhattan",
+            "n_neighbors": 3
+        },
+        {
+            "metric": "manhattan",
+            "n_neighbors": 4
+        },
+        {
+            "metric": "manhattan",
+            "n_neighbors": 5
+        }
+    ],
+    "test_scores": [
+        [
+            0.9375,
+            0.9375,
+            0.975,
+            0.95,
+            0.95
+        ],
+        [
+            0.85,
+            0.875,
+            0.9,
+            0.925,
+            0.875
+        ],
+        [
+            0.8875,
+            0.875,
+            0.9,
+            0.925,
+            0.85
+        ],
+        [
+            0.875,
+            0.8125,
+            0.9,
+            0.875,
+            0.825
+        ],
+        [
+            0.85,
+            0.775,
+            0.85,
+            0.875,
+            0.85
+        ],
+        [
+            0.975,
+            0.95,
+            0.975,
+            0.975,
+            0.95
+        ],
+        [
+            0.875,
+            0.8875,
+            0.9,
+            0.9,
+            0.9
+        ],
+        [
+            0.9,
+            0.875,
+            0.95,
+            0.95,
+            0.9
+        ],
+        [
+            0.875,
+            0.8375,
+            0.925,
+            0.9,
+            0.9
+        ],
+        [
+            0.8625,
+            0.7875,
+            0.9,
+            0.9,
+            0.925
+        ]
+    ]
+}
