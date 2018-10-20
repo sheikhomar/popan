@@ -95,9 +95,18 @@ def main():
     data_set_name = data_set.__name__
     with_pca = args.pca
 
+    print('Loading %s...' % data_set_name)
+    X_train, X_test, y_train, y_test = data_set.load_data()
+
+    if with_pca:
+        print('Applying PCA...')
+        pca = PCA(n_components=2)
+        pca.fit(X_train, y_train)
+        X_train = pca.transform(X_train)
+
     print('Using algorithm %s...' % algo_name)
     classifier = algo.get_classifier()
-    params_space = algo.get_params_space(data_set_name)
+    params_space = algo.get_params_space(X_train.shape)
     searcher = GridSearchCV(
         classifier,
         params_space,
@@ -108,14 +117,7 @@ def main():
         iid=False,
         return_train_score=False
     )
-    print('Loading %s...' % data_set_name)
-    X_train, X_test, y_train, y_test = data_set.load_data()
 
-    if with_pca:
-        print('Applying PCA...')
-        pca = PCA(n_components=2)
-        pca.fit(X_train, y_train)
-        X_train = pca.transform(X_train)
 
     print('Running grid search...')
     searcher.fit(X_train, y_train)

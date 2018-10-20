@@ -5,7 +5,7 @@ def get_classifier():
     return NearestCentroid()
 
 
-def get_params_space(data_set):
+def get_params_space(data_shape):
     return {
         # TODO: Investigate how to compute the centroid for other distance metrics.
         # scikit-learn supports other distances like 'braycurtis', 'canberra',
