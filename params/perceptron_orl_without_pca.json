@@ -1,0 +1,54 @@
+{
+    "algorithm": "perceptron",
+    "data_set": "orl",
+    "pca": false,
+    "best_score": 0.5825,
+    "best_params": {
+        "penalty": "l2"
+    },
+    "folds": 5,
+    "search_params": [
+        {
+            "penalty": null
+        },
+        {
+            "penalty": "l1"
+        },
+        {
+            "penalty": "l2"
+        },
+        {
+            "penalty": "elasticnet"
+        }
+    ],
+    "test_scores": [
+        [
+            0.5875,
+            0.1375,
+            0.3,
+            0.65,
+            0.725
+        ],
+        [
+            0.6375,
+            0.175,
+            0.225,
+            0.65,
+            0.75
+        ],
+        [
+            0.65,
+            0.6625,
+            0.3,
+            0.575,
+            0.725
+        ],
+        [
+            0.65,
+            0.6625,
+            0.3,
+            0.575,
+            0.725
+        ]
+    ]
+}
