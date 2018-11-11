@@ -6,7 +6,7 @@ import importlib
 import json
 import numpy as np
 from sklearn.decomposition import PCA
-from sklearn.model_selection import StratifiedKFold, cross_val_score
+from sklearn.model_selection import cross_val_score, RepeatedStratifiedKFold
 
 ALGORITHMS_DIR = 'algorithms'
 
@@ -102,15 +102,17 @@ def benchmark(algo, X, y, data_set_name, with_pca, n_folds, random_state, n_iter
     best_params = fetch_best_params(classifier_name, data_set_name, with_pca)
     print(best_params)
 
-    kfold = StratifiedKFold(n_splits=n_folds, random_state=random_state, shuffle=True)
+    kfold = RepeatedStratifiedKFold(
+        n_splits=n_folds,
+        random_state=random_state,
+        n_repeats=n_iterations
+    )
     classifier = algo.get_classifier()
     classifier.set_params(**best_params)
+    final_scores = cross_val_score(
+        classifier, X, y, n_jobs=-1, cv=kfold, scoring='accuracy', verbose=2
+    )
 
-    final_scores = []
-    n_iterations = 10
-    for iteration in range(n_iterations):
-        iter_scores = cross_val_score(classifier, X, y, cv=kfold, scoring='accuracy')
-        final_scores = np.append(final_scores, iter_scores)
     print(final_scores)
     return {
         'algorithm': classifier_name,
