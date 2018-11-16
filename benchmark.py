@@ -15,35 +15,23 @@ ALGORITHMS = [path.splitext(f)[0]
               if path.isfile(path.join(ALGORITHMS_DIR, f))]
 DATA_SETS = ['mnist', 'orl']
 
+def import_data_sets(data_set):
+    if data_set == 'all' or data_set is None or len(data_set) == 0:
+        return [importlib.import_module(ds) for ds in DATA_SETS]
 
-def import_algorithm(algorithm):
-    #print('Given : "{}"'.format(algorithm))
-    if algorithm not in ALGORITHMS:
-        msg = 'Unknown algorithm "%s"!' % algorithm
-        raise ap.ArgumentTypeError(msg)
-    return importlib.import_module('algorithms.%s' % algorithm)
-
-
-def import_data_set(data_set):
     if data_set not in DATA_SETS:
         msg = 'Unknown data set "%s"!' % data_set
         raise ap.ArgumentTypeError(msg)
-    return importlib.import_module(data_set)
+    return [importlib.import_module(data_set)]
 
 
 def parse_args():
     parser = ap.ArgumentParser(
-        description='Determines the best hyper-parameters for '
-                    'the given algorithm.')
-    parser.add_argument('--data-set', '-d',
-                        type=import_data_set,
-                        required=True,
-                        help='Supported data sets: %s' % ', '.join(DATA_SETS))
-    parser.add_argument('--pca',
-                        action='store_true',
+        description='Benchmarks the different classifiers.')
+    parser.add_argument('--data-sets', '-d',
+                        type=import_data_sets,
                         required=False,
-                        default=False,
-                        help='Reduce dimensions using PCA')
+                        help='Supported data sets: all, %s' % ', '.join(DATA_SETS))
     parser.add_argument('--folds', '-k',
                         required=False,
                         type=int,
@@ -57,7 +45,7 @@ def parse_args():
     parser.add_argument('--repeats', '-n',
                         required=False,
                         type=int,
-                        default=42,
+                        default=10,
                         help='Number of times to repeat the cross-validation.')
     return parser.parse_args()
 
@@ -109,6 +97,7 @@ def benchmark(algo, X, y, data_set_name, with_pca, n_folds, random_state, n_iter
     )
     classifier = algo.get_classifier()
     classifier.set_params(**best_params)
+    print('X={}  y={}'.format(X.shape, y.shape))
     final_scores = cross_val_score(
         classifier, X, y, n_jobs=-1, cv=kfold, scoring='accuracy', verbose=2
     )
@@ -123,38 +112,43 @@ def benchmark(algo, X, y, data_set_name, with_pca, n_folds, random_state, n_iter
     }
 
 
+def run(args, with_pca):
+    for data_set in args.data_sets:
+        data_set_name = data_set.__name__
+
+        print('Loading %s...' % data_set_name)
+        X_train, X_test, y_train, y_test = data_set.load_data()
+        X = np.concatenate((X_train, X_test))
+        y = np.concatenate((y_train, y_test))
+
+        if with_pca:
+            print('Applying PCA...')
+            pca = PCA(n_components=2)
+            X = pca.fit_transform(X, y)
+
+        n_folds = args.folds
+        random_state = args.random_state
+        n_repeats = args.repeats
+
+        final_output = []
+        for module_name in ALGORITHMS:
+            algo = importlib.import_module('algorithms.%s' % module_name)
+            res = benchmark(algo, X, y, data_set_name, with_pca,
+                            n_folds, random_state, n_repeats)
+            final_output.append(res)
+
+        pca_suffix = 'with_pca' if with_pca else 'without_pca'
+        file_name = '%s_%s.json' % (data_set_name, pca_suffix)
+        file_path = os.path.join('benchmark_results', file_name)
+        write_json(final_output, file_path)
+
+
 def main():
     print('Benchmarking')
     args = parse_args()
-    n_folds = args.folds
-    data_set = args.data_set
-    data_set_name = data_set.__name__
-    with_pca = args.pca
-    random_state = args.random_state
-
-    print('Loading %s...' % data_set_name)
-    X_train, X_test, y_train, y_test = data_set.load_data()
-    X = np.concatenate((X_train, X_test))
-    y = np.concatenate((y_train, y_test))
-
-    if with_pca:
-        print('Applying PCA...')
-        pca = PCA(n_components=2)
-        pca.fit(X, y)
-        X = pca.transform(X_train)
-
-    final_output = []
-    ALGORITHMS.remove('pmse')
-    ALGORITHMS.remove('pback')
-    for module_name in ALGORITHMS:
-        algo = importlib.import_module('algorithms.%s' % module_name)
-        res = benchmark(algo, X, y, data_set_name, with_pca, n_folds, random_state, 10)
-        final_output.append(res)
-
-    pca_suffix = 'with_pca' if with_pca else 'without_pca'
-    file_name = '%s_%s.json' % (data_set_name, pca_suffix)
-    file_path = os.path.join('benchmark_results', file_name)
-    write_json(final_output, file_path)
+    run(args, with_pca=True)
+    run(args, with_pca=False)
+    print('Benchmark done!')
 
 
 if __name__ == '__main__':
