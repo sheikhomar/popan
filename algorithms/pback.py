@@ -1,53 +1,98 @@
 # Perceptron trained using Backpropagation
 from sklearn.base import BaseEstimator, ClassifierMixin
+from sklearn.utils import Parallel, delayed
+from sklearn.preprocessing import LabelEncoder
 from sklearn.utils.validation import check_is_fitted
 import numpy as np
 
 
+def _fit_binary_perceptron(X, y, pos_class, eta=0.01, max_iterations=1000):
+    """
+    Fits a single binary classifier.
+    :param X: samples, matrix of the shape N * D
+    :param y: labels, vector of size N
+    :param pos_class: The positive class
+    :return: the weight matrix
+    """
+    # Set positive class to 1 and the rest to -1
+    y = np.where(y == pos_class, 1, -1)
+
+    # Initial weight vector of size D
+    w = np.random.rand(X.shape[1])
+
+    has_converged = False
+    n_misclassified = 0
+    for iteration in range(max_iterations):
+        # Compute the response of the decision function g()
+        response = np.multiply(y, np.dot(X, w))
+
+        # Construct chi; a matrix of misclassified samples
+        misclassified_filter = response < 0
+        chi = X[misclassified_filter, :]
+
+        # Stop algorithm when all samples classified correctly
+        n_misclassified = chi.shape[0]
+        if n_misclassified == 0:
+            has_converged = True
+            break
+
+        misclassified_y = y[misclassified_filter].reshape(-1, 1)
+        update_w = np.sum(np.multiply(misclassified_y, chi), axis=0)
+        w = w + eta * update_w
+
+    if not has_converged:
+        print('Waring: Maximum number of iteration reached before convergence. '
+              'Consider increasing max_iterations to improve the fit. '
+              'Number of misclassified samples: ' + str(n_misclassified))
+    return w
+
+
 class Perceptron(BaseEstimator, ClassifierMixin):
-    def __init__(self, eta=0.01, max_iterations=20):
+    def __init__(self, eta=0.01, max_iterations=20, n_jobs=-1, verbose=2):
         self.eta = eta
         self.max_iterations = max_iterations
-        self.has_converged_ = True
-        self.w_ = None
+        self.n_jobs = n_jobs
+        self.verbose = verbose
+        self.weights_ = None
+        self.classes_ = None
 
-    def insert_ones(self, samples):
-        ones = np.ones(samples.shape[1])
-        return np.vstack([ones, samples])
-
-    def calc_f(self, samples, labels, w):
-        N = samples.shape[1]
-        results = np.zeros(N)
-        for i in range(N):
-            x_i = samples[:, i].reshape(-1, 1)
-            results[i] = labels[i] * np.asscalar(w.T.dot(x_i))
-        return results
+    def _augment(self, X):
+        ones = np.ones(X.shape[0]).reshape(-1, 1)
+        return np.concatenate([ones, X], axis=1)
 
     def fit(self, X, y):
-        self.w_ = None
-        n_samples, n_features = X.shape
-        w = np.random.rand(n_features+1)
-        self.has_converged_ = False
-        for it in range(self.max_iterations):
-            response = self.calc_f(X, y, w)
-            misclassified_filter = response < 0
-            chi = X[:, misclassified_filter]
-            num_misclassified = chi.shape[1]
-            if num_misclassified == 0:
-                self.has_converged_ = True
-                break
-            update_w = np.sum(y[misclassified_filter] * chi, axis=1).reshape(-1, 1)
-            w = w + self.eta * update_w
-        self.w_ = w
+        # n_samples, n_features = X.shape
+        X = self._augment(X)
+
+        # Perform label encoding so label indicies start from zero
+        le = LabelEncoder()
+        encoded_y = le.fit_transform(y)
+        self.classes_ = le.classes_
+        n_classes = len(self.classes_)
+
+        # Use the Parallel library to fit C binary classifiers in parallel
+        results = Parallel(
+            n_jobs=self.n_jobs, prefer='threads', verbose=self.verbose
+        )(delayed(_fit_binary_perceptron)(X, encoded_y, c)
+          for c in range(n_classes))
+
+        # Store final result for prediction
+        self.weights_ = np.array(results)
+
         return self
 
     def predict(self, X):
-        check_is_fitted(self, 'w_')
-        w = self.w_
-        n_samples, n_features = X.shape
-        results = np.zeros(n_samples)
-        for i in range(n_samples):
-            x_i = X[:, i].reshape(-1, 1)
-            results[i] = np.asscalar(w.T.dot(x_i))
-        labels = np.copysign(np.ones(n_samples), results)
-        return labels
+        check_is_fitted(self, 'weights_')
+
+        # Retrieved trained weights
+        W = self.weights_
+
+        # Augment X
+        X = self._augment(X)
+
+        # Compute distance between the C decision function
+        # and each of the samples in the test set
+        distances = np.dot(X, W.T)
+
+        # Classify by taking the class with the largest distance
+        return self.classes_[np.argmax(distances, axis=1)]
