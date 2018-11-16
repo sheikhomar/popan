@@ -39,6 +39,8 @@ def _fit_binary_perceptron(X, y, pos_class, eta0=0.1, decay=0.01, max_iterations
         misclassified_y = y[misclassified_filter].reshape(-1, 1)
         update_w = np.sum(np.multiply(misclassified_y, chi), axis=0)
         learning_rate = eta0 * np.exp(-decay * iteration)
+        # Perhaps faster alternative?
+        # learning_rate = eta0 * (1. / (1. + decay * iteration))
         w = w + learning_rate * update_w
 
     if not has_converged:
@@ -98,3 +100,15 @@ class Perceptron(BaseEstimator, ClassifierMixin):
 
         # Classify by taking the class with the largest distance
         return self.classes_[np.argmax(distances, axis=1)]
+
+
+def get_classifier():
+    return Perceptron()
+
+
+def get_params_space(data_shape):
+    return {
+        'eta0': [0.001, 0.01, 0.1, 1],
+        # When decay=0 then learning rate is fixed to eta0
+        'decay': [0, 0.001, 0.01, 0.1, 1]
+    }
