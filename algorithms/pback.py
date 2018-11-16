@@ -44,9 +44,10 @@ def _fit_binary_perceptron(X, y, pos_class, eta0=0.1, decay=0.01, max_iterations
         w = w + learning_rate * update_w
 
     if not has_converged:
-        print('Waring: Maximum number of iteration reached before convergence. '
-              'Consider increasing max_iterations to improve the fit. '
-              'Number of misclassified samples: ' + str(n_misclassified))
+        pass
+        # print('Waring: Maximum number of iteration reached before convergence. '
+        #      'Consider increasing max_iterations to improve the fit. '
+        #      'Number of misclassified samples: ' + str(n_misclassified))
     return w
 
 
