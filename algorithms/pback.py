@@ -6,7 +6,7 @@ from sklearn.utils.validation import check_is_fitted
 import numpy as np
 
 
-def _fit_binary_perceptron(X, y, pos_class, eta=0.01, max_iterations=1000):
+def _fit_binary_perceptron(X, y, pos_class, eta0=0.1, decay=0.01, max_iterations=1000):
     """
     Fits a single binary classifier.
     :param X: samples, matrix of the shape N * D
@@ -38,7 +38,8 @@ def _fit_binary_perceptron(X, y, pos_class, eta=0.01, max_iterations=1000):
 
         misclassified_y = y[misclassified_filter].reshape(-1, 1)
         update_w = np.sum(np.multiply(misclassified_y, chi), axis=0)
-        w = w + eta * update_w
+        learning_rate = eta0 * np.exp(-decay * iteration)
+        w = w + learning_rate * update_w
 
     if not has_converged:
         print('Waring: Maximum number of iteration reached before convergence. '
@@ -48,8 +49,9 @@ def _fit_binary_perceptron(X, y, pos_class, eta=0.01, max_iterations=1000):
 
 
 class Perceptron(BaseEstimator, ClassifierMixin):
-    def __init__(self, eta=0.01, max_iterations=20, n_jobs=-1, verbose=2):
-        self.eta = eta
+    def __init__(self, eta0=0.1, decay=0.01, max_iterations=1000, n_jobs=-1, verbose=2):
+        self.eta0 = eta0
+        self.decay = decay
         self.max_iterations = max_iterations
         self.n_jobs = n_jobs
         self.verbose = verbose
@@ -73,7 +75,7 @@ class Perceptron(BaseEstimator, ClassifierMixin):
         # Use the Parallel library to fit C binary classifiers in parallel
         results = Parallel(
             n_jobs=self.n_jobs, prefer='threads', verbose=self.verbose
-        )(delayed(_fit_binary_perceptron)(X, encoded_y, c)
+        )(delayed(_fit_binary_perceptron)(X, encoded_y, c, self.eta0, self.decay, self.max_iterations)
           for c in range(n_classes))
 
         # Store final result for prediction
