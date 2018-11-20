@@ -94,6 +94,7 @@ def main():
     data_set = args.data_set
     data_set_name = data_set.__name__
     with_pca = args.pca
+    n_jobs = -1
 
     print('Loading %s...' % data_set_name)
     X_train, X_test, y_train, y_test = data_set.load_data()
@@ -107,17 +108,19 @@ def main():
     print('Using algorithm %s...' % algo_name)
     classifier = algo.get_classifier()
     params_space = algo.get_params_space(X_train.shape)
+    if algo_name in ['pmse']:
+        n_jobs = 1
+
     searcher = GridSearchCV(
         classifier,
         params_space,
         cv=num_folds,
-        n_jobs=-1,
+        n_jobs=n_jobs,
         scoring='accuracy',
         verbose=2,
         iid=False,
         return_train_score=False
     )
-
 
     print('Running grid search...')
     searcher.fit(X_train, y_train)

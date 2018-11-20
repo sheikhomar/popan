@@ -82,7 +82,7 @@ def save_results(results, classifier_name, data_set_name, with_pca, hyperparams)
     write_json(output, file_path)
 
 
-def benchmark(algo, X, y, data_set_name, with_pca, n_folds, random_state, n_iterations):
+def benchmark(algo, X, y, data_set_name, with_pca, n_folds, random_state, n_iterations, n_jobs=-1):
     classifier_name = algo.__name__.replace('algorithms.', '')
 
     print('Benchmarking %s' % classifier_name)
@@ -98,8 +98,10 @@ def benchmark(algo, X, y, data_set_name, with_pca, n_folds, random_state, n_iter
     classifier = algo.get_classifier()
     classifier.set_params(**best_params)
     print('X={}  y={}'.format(X.shape, y.shape))
+    if classifier_name in ['pmse', 'pback']:
+        n_jobs = 2  # TODO: Avoid memory issues.
     final_scores = cross_val_score(
-        classifier, X, y, n_jobs=-1, cv=kfold, scoring='accuracy', verbose=2
+        classifier, X, y, n_jobs=n_jobs, cv=kfold, scoring='accuracy', verbose=2
     )
 
     print(final_scores)
@@ -137,10 +139,13 @@ def run(args, with_pca):
                             n_folds, random_state, n_repeats)
             final_output.append(res)
 
-        pca_suffix = 'with_pca' if with_pca else 'without_pca'
-        file_name = '%s_%s.json' % (data_set_name, pca_suffix)
-        file_path = os.path.join('benchmark_results', file_name)
-        write_json(final_output, file_path)
+            # Store results on disk once benchmark data is
+            # collected for each classifier to minimise the risk
+            # of losing benchmark data if the script crashes.
+            pca_suffix = 'with_pca' if with_pca else 'without_pca'
+            file_name = '%s_%s.json' % (data_set_name, pca_suffix)
+            file_path = os.path.join('benchmark_results', file_name)
+            write_json(final_output, file_path)
 
 
 def main():
