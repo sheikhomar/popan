@@ -7,47 +7,15 @@ import json
 import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.model_selection import cross_val_score, RepeatedStratifiedKFold
+import time
+
 
 ALGORITHMS_DIR = 'algorithms'
 
 ALGORITHMS = [path.splitext(f)[0]
               for f in os.listdir(ALGORITHMS_DIR)
               if path.isfile(path.join(ALGORITHMS_DIR, f))]
-DATA_SETS = ['mnist', 'orl']
-
-def import_data_sets(data_set):
-    if data_set == 'all' or data_set is None or len(data_set) == 0:
-        return [importlib.import_module(ds) for ds in DATA_SETS]
-
-    if data_set not in DATA_SETS:
-        msg = 'Unknown data set "%s"!' % data_set
-        raise ap.ArgumentTypeError(msg)
-    return [importlib.import_module(data_set)]
-
-
-def parse_args():
-    parser = ap.ArgumentParser(
-        description='Benchmarks the different classifiers.')
-    parser.add_argument('--data-sets', '-d',
-                        type=import_data_sets,
-                        required=False,
-                        help='Supported data sets: all, %s' % ', '.join(DATA_SETS))
-    parser.add_argument('--folds', '-k',
-                        required=False,
-                        type=int,
-                        default=5,
-                        help='Number of folds or splits used in the k-fold cross validation.')
-    parser.add_argument('--random-state', '-r',
-                        required=False,
-                        type=int,
-                        default=42,
-                        help='Random state for consistent results.')
-    parser.add_argument('--repeats', '-n',
-                        required=False,
-                        type=int,
-                        default=10,
-                        help='Number of times to repeat the cross-validation.')
-    return parser.parse_args()
+DATA_SETS = ['orl', 'mnist']
 
 
 def get_result_path(subdir, classifier_name, data_set_name, with_pca):
@@ -70,19 +38,9 @@ def fetch_best_params(classifier_name, data_set_name, with_pca):
         return json.load(file)['best_params']
 
 
-def save_results(results, classifier_name, data_set_name, with_pca, hyperparams):
-    output = {
-        'algorithm': classifier_name,
-        'data_set': data_set_name,
-        'pca': with_pca,
-        'params': hyperparams,
-        'scores': list(results)
-    }
-    file_path = get_result_path('benchmark_results', classifier_name, data_set_name, with_pca)
-    write_json(output, file_path)
-
-
 def benchmark(algo, X, y, data_set_name, with_pca, n_folds, random_state, n_iterations, n_jobs=-1):
+    start_time = time.time()
+
     classifier_name = algo.__name__.replace('algorithms.', '')
 
     print('Benchmarking %s' % classifier_name)
@@ -105,54 +63,86 @@ def benchmark(algo, X, y, data_set_name, with_pca, n_folds, random_state, n_iter
     )
 
     print(final_scores)
+
+    exec_time_sec = (time.time() - start_time)
     return {
         'algorithm': classifier_name,
         'data_set': data_set_name,
         'pca': with_pca,
         'params': best_params,
+        'execution_time_sec': exec_time_sec,
+        'n_jobs': n_jobs,
+        'scores_summary': {
+            'min': final_scores.min(),
+            'mean': final_scores.mean(),
+            'max': final_scores.max(),
+            'variance': final_scores.var(ddof=1),
+            'std': final_scores.std(ddof=1),
+        },
         'scores': list(final_scores)
     }
 
 
-def run(args, with_pca):
-    for data_set in args.data_sets:
-        data_set_name = data_set.__name__
+def run(args, data_set, with_pca):
+    data_set_name = data_set.__name__
 
-        print('Loading %s...' % data_set_name)
-        X_train, X_test, y_train, y_test = data_set.load_data()
-        X = np.concatenate((X_train, X_test))
-        y = np.concatenate((y_train, y_test))
+    print('Loading %s...' % data_set_name)
+    X_train, X_test, y_train, y_test = data_set.load_data()
+    X = np.concatenate((X_train, X_test))
+    y = np.concatenate((y_train, y_test))
 
-        if with_pca:
-            print('Applying PCA...')
-            pca = PCA(n_components=2)
-            X = pca.fit_transform(X, y)
+    if with_pca:
+        print('Applying PCA...')
+        pca = PCA(n_components=2)
+        X = pca.fit_transform(X, y)
 
-        n_folds = args.folds
-        random_state = args.random_state
-        n_repeats = args.repeats
+    n_folds = args.folds
+    random_state = args.random_state
+    n_repeats = args.repeats
 
-        final_output = []
-        for module_name in ALGORITHMS:
-            algo = importlib.import_module('algorithms.%s' % module_name)
-            res = benchmark(algo, X, y, data_set_name, with_pca,
+    for module_name in ALGORITHMS:
+        pca_suffix = 'pca' if with_pca else 'original'
+        file_name = '%s_%s_%s.json' % (data_set_name, pca_suffix, module_name)
+        file_path = os.path.join('benchmark_results', file_name)
+
+        if os.path.exists(file_path):
+            print('Benchmark data already exists for {}!'.format(module_name))
+            continue
+
+        algo = importlib.import_module('algorithms.%s' % module_name)
+        results = benchmark(algo, X, y, data_set_name, with_pca,
                             n_folds, random_state, n_repeats)
-            final_output.append(res)
+        write_json(results, file_path)
 
-            # Store results on disk once benchmark data is
-            # collected for each classifier to minimise the risk
-            # of losing benchmark data if the script crashes.
-            pca_suffix = 'with_pca' if with_pca else 'without_pca'
-            file_name = '%s_%s.json' % (data_set_name, pca_suffix)
-            file_path = os.path.join('benchmark_results', file_name)
-            write_json(final_output, file_path)
+
+def parse_args():
+    parser = ap.ArgumentParser(
+        description='Benchmarks the different classifiers.')
+    parser.add_argument('--random-state', '-r',
+                        required=False,
+                        type=int,
+                        default=42,
+                        help='Random state for consistent results.')
+    parser.add_argument('--folds', '-k',
+                        required=False,
+                        type=int,
+                        default=3,
+                        help='Number of folds or splits used in the k-fold cross validation.')
+    parser.add_argument('--repeats', '-n',
+                        required=False,
+                        type=int,
+                        default=33,
+                        help='Number of times to repeat the cross-validation.')
+    return parser.parse_args()
 
 
 def main():
     print('Benchmarking')
     args = parse_args()
-    run(args, with_pca=True)
-    run(args, with_pca=False)
+    data_sets = [importlib.import_module(ds) for ds in DATA_SETS]
+    for ds in data_sets:
+        run(args, data_set=ds, with_pca=True)
+        run(args, data_set=ds, with_pca=False)
     print('Benchmark done!')
 
 
